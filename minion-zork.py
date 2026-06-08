@@ -6,7 +6,7 @@ maze = {
         "north": "hallway1",
         "east": "office",
         "story": "You find yourself in the hallway. A mysterious note is stuck to the wall, promising danger ahead.",
-    },a
+    },
     "hallway1": {
         "south": "start",
         "east": "library",
