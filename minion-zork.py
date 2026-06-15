@@ -1,179 +1,431 @@
+import tkinter as tk
+from tkinter import messagebox
 import random
+import copy
 
-# Define the maze layout and story elements
+
+# ==========================
+# MAZE
+# ==========================
+
 maze = {
+
     "start": {
         "north": "hallway1",
         "east": "office",
-        "story": "You find yourself in the hallway. A mysterious note is stuck to the wall, promising danger ahead.",
+        "story": "You are in the entrance hallway. A mysterious note warns you about danger ahead."
     },
+
     "hallway1": {
         "south": "start",
         "east": "library",
         "west": "kitchen",
-        "story": "You enter the library. The air is thick with smoke, and the bookshelves are falling down. You need to find a way out before it collapses.",
+        "story": "The hallway is dark. You hear strange Minion noises nearby."
     },
+
     "library": {
         "west": "hallway1",
         "north": "study",
-        "story": "You find yourself in the library. A group of mischievous Minions are playing a game of marbles, but they seem to be losing.",
+        "story": "Smoke fills the library. A Banana Monster appears!"
     },
+
     "study": {
         "south": "library",
+        "story": "An old study contains a hidden treasure chest."
     },
+
     "office": {
         "west": "start",
         "south": "kitchen",
-        "story": "You find yourself in the office. A desk with a keyboard and a computer monitor sits in the center of the room.",
+        "story": "A computer is blinking on the desk."
     },
+
     "kitchen": {
         "north": "office",
-    },
+        "story": "The kitchen is empty. You see banana footprints."
+    }
+
 }
 
-# Define the player's inventory
-inventory = {
-    "sword": 1,
-    "shield": 1,
-}
 
-# Define the enemies
-enemies = {
-    "grunt": {
-        "name": "Grunt",
-        "health": 100,
-        "damage": 10,
-    },
-    "banana": {
-        "name": "Banana",
+# ==========================
+# ENEMIES
+# ==========================
+
+enemy_template = {
+
+    "library": {
+        "name": "Banana Monster",
         "health": 50,
-        "damage": 5,
+        "damage": 5
     },
+
+    "study": {
+        "name": "Grunt Minion",
+        "health": 100,
+        "damage": 10
+    }
+
 }
 
-# Initialize the player's location, health, and inventory
-current_location = "start"
-player_health = 100
-player_inventory = []
 
-# Print the welcome message
-print("Welcome to the Minion Maze!")
-print("You find yourself in the hallway.")
+enemies = copy.deepcopy(enemy_template)
 
-# Game loop
-while True:
-    # Print the player's location, health, and inventory
-    print(f"You are in the {current_location}.")
-    print(f"Health: {player_health}")
-    print("Inventory:", player_inventory)
 
-    # Get the player's input
-    action = input("What do you want to do? ").lower()
 
-    # Move north, south, east, or west
-    if action in ["north", "south", "east", "west"]:
-        current_location = maze[current_location][action]
-        print(maze[current_location]["story"])
-    
-    # Check for enemies in the current location
-    elif action == "attack":
-        if current_location in enemies:
-            enemy = enemies[current_location]
-            print("A", enemy["name"], "appears!")
+# ==========================
+# PLAYER
+# ==========================
 
-            # Battle loop
-            while True:
-                # Player attacks the enemy
-                enemy["health"] -= player_inventory.get("sword", 0) * 10
+player = {
 
-                # Check if the enemy is dead
-                if enemy["health"] <= 0:
-                    print("You defeated the", enemy["name"] + "!")
-                    break
+    "health": 100,
 
-                # Enemy attacks the player
-                player_health -= enemy["damage"]
+    "inventory": [
+        "sword",
+        "shield"
+    ]
 
-                # Check if the player is dead
-                if player_health <= 0:
-                    print("You died!")
-                    break
-    
-    # Use an item from the inventory
-    elif action.startswith("use"):
-        item = input("Which item do you want to use? ")
-        if item in player_inventory:
-            print(f"You used {item}!")
-        else:
-            print(f"You don't have {item} in your inventory.")
-    
-    # Check for items in the current location
-    elif action == "search":
-        if maze[current_location].get("items", []):
-            print("You found some items!")
-            for item in maze[current_location]["items"]:
-                inventory.append(item)
-        else:
-            print("There are no items here.")
-    
-    # Pick up an item from the ground
-    elif action == "pickup":
-        if current_location in enemies:
-            enemy = enemies[current_location]
-            if enemy["name"] in inventory:
-                player_inventory.append(enemy["name"])
-                print("You picked up", enemy["name"], "!")
-            else:
-                print("There is no item here.")
-        else:
-            print("There are no items here.")
-    
-    # Use a weapon from the inventory
-    elif action.startswith("weapon"):
-        weapon = input("Which weapon do you want to use? ")
-        if weapon in player_inventory:
-            print(f"You used {weapon}!")
-        else:
-            print(f"You don't have {weapon} in your inventory.")
-    
-    # Check for enemies in the current location
-    elif action == "enemies":
-        if current_location in enemies:
-            enemy = enemies[current_location]
-            print("A", enemy["name"], "appears!")
-        else:
-            print("There are no enemies here.")
-    
-    # Use a shield from the inventory
-    elif action.startswith("shield"):
-        if current_location in enemies:
-            enemy = enemies[current_location]
-            if enemy["name"] in player_inventory:
-                player_inventory.append(enemy["name"])
-                print("You used", enemy["name"], "!")
-            else:
-                print("There is no item here.")
-        else:
-            print("There are no items here.")
-    
-    # Check for a map in the current location
-    elif action == "map":
-        if maze[current_location].get("map", []):
-            print(maze[current_location]["map"])
-        else:
-            print("There is no map here.")
-    
-    # Check for a treasure in the current location
-    elif action == "treasure":
-        if maze[current_location].get("treasure", []):
-            print(maze[current_location]["treasure"])
-        else:
-            print("There is no treasure here.")
-    
-    # Exit the game
-    elif action == "exit":
-        break
-    
-    # Invalid input
+}
+
+
+location = "start"
+
+
+
+# ==========================
+# GAME FUNCTIONS
+# ==========================
+
+def update_screen(text):
+
+    story_box.config(state="normal")
+    story_box.delete("1.0", tk.END)
+
+    story_box.insert(
+        tk.END,
+        text
+    )
+
+    story_box.config(state="disabled")
+
+
+    stats.config(
+        text=f"""
+Location: {location}
+
+Health: {player['health']}
+
+Inventory:
+{', '.join(player['inventory'])}
+"""
+    )
+
+
+
+def move(direction):
+
+    global location
+
+    if direction in maze[location]:
+
+        location = maze[location][direction]
+
+        update_screen(
+            maze[location]["story"]
+        )
+
     else:
-        print("Invalid command. Type 'help' for a list of commands.")
+
+        update_screen(
+            "You cannot go that way!"
+        )
+
+
+
+def attack():
+
+    if location not in enemies:
+
+        update_screen(
+            "There is nothing to attack here."
+        )
+
+        return
+
+
+    enemy = enemies[location]
+
+
+    if enemy["health"] <= 0:
+
+        update_screen(
+            "This enemy is already defeated."
+        )
+
+        return
+
+
+
+    damage = 20 if "sword" in player["inventory"] else 5
+
+    enemy["health"] -= damage
+
+
+    if enemy["health"] <= 0:
+
+        update_screen(
+            f"You defeated {enemy['name']}!"
+        )
+
+
+        if random.random() < 0.5:
+
+            player["inventory"].append(
+                "banana shield"
+            )
+
+            update_screen(
+                f"You defeated {enemy['name']}!\n"
+                "The enemy dropped a banana shield!"
+            )
+
+
+        return
+
+
+
+    player["health"] -= enemy["damage"]
+
+
+    if player["health"] <= 0:
+
+        messagebox.showerror(
+            "Game Over",
+            "The Minions defeated you!"
+        )
+
+        root.destroy()
+
+        return
+
+
+
+    update_screen(
+        f"""
+You attacked {enemy['name']}!
+
+Enemy health:
+{enemy['health']}
+
+The enemy hits you for:
+{enemy['damage']}
+"""
+    )
+
+
+
+def search():
+
+    if location == "study":
+
+        if "treasure key" not in player["inventory"]:
+
+            player["inventory"].append(
+                "treasure key"
+            )
+
+            update_screen(
+                "You found a treasure key!"
+            )
+
+        else:
+
+            update_screen(
+                "The chest is empty."
+            )
+
+
+
+    elif location == "office":
+
+        player["inventory"].append(
+            "health potion"
+        )
+
+        update_screen(
+            "You found a health potion!"
+        )
+
+
+
+    else:
+
+        update_screen(
+            "You found nothing."
+        )
+
+
+
+def use_item():
+
+    if "health potion" in player["inventory"]:
+
+        player["inventory"].remove(
+            "health potion"
+        )
+
+        player["health"] += 30
+
+
+        if player["health"] > 100:
+
+            player["health"] = 100
+
+
+        update_screen(
+            "You drank the health potion!"
+        )
+
+    else:
+
+        update_screen(
+            "You don't have a usable item."
+        )
+
+
+
+# ==========================
+# GUI
+# ==========================
+
+root = tk.Tk()
+
+root.title(
+    "Minion Maze"
+)
+
+root.geometry(
+    "600x500"
+)
+
+
+title = tk.Label(
+    root,
+    text="MINION MAZE",
+    font=("Arial", 20)
+)
+
+title.pack()
+
+
+
+stats = tk.Label(
+    root,
+    text="",
+    font=("Arial", 12)
+)
+
+stats.pack()
+
+
+
+story_box = tk.Text(
+    root,
+    height=10,
+    width=60
+)
+
+story_box.pack()
+
+story_box.config(
+    state="disabled"
+)
+
+
+
+frame = tk.Frame(root)
+
+frame.pack()
+
+
+
+tk.Button(
+    frame,
+    text="North",
+    width=10,
+    command=lambda: move("north")
+).grid(row=0,column=1)
+
+
+tk.Button(
+    frame,
+    text="West",
+    width=10,
+    command=lambda: move("west")
+).grid(row=1,column=0)
+
+
+tk.Button(
+    frame,
+    text="East",
+    width=10,
+    command=lambda: move("east")
+).grid(row=1,column=2)
+
+
+tk.Button(
+    frame,
+    text="South",
+    width=10,
+    command=lambda: move("south")
+).grid(row=2,column=1)
+
+
+
+buttons = tk.Frame(root)
+
+buttons.pack(pady=10)
+
+
+
+tk.Button(
+    buttons,
+    text="Attack",
+    width=12,
+    command=attack
+).grid(row=0,column=0)
+
+
+tk.Button(
+    buttons,
+    text="Search",
+    width=12,
+    command=search
+).grid(row=0,column=1)
+
+
+tk.Button(
+    buttons,
+    text="Use Potion",
+    width=12,
+    command=use_item
+).grid(row=0,column=2)
+
+
+
+tk.Button(
+    root,
+    text="Exit",
+    width=20,
+    command=root.destroy
+).pack()
+
+
+
+update_screen(
+    maze["start"]["story"]
+)
+
+
+root.mainloop()
